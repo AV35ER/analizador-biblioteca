@@ -1,0 +1,6 @@
+[build]
+  command = "python generar_frontend.py"
+  publish = "netlify-public"
+
+[build.environment]
+  PYTHON_VERSION = "3.13"

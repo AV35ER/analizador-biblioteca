@@ -1,0 +1,208 @@
+    {% if analizado %}
+    <section>
+        <h2>Resultado del análisis léxico</h2>
+
+        {% if tokens %}
+        <div class="tabla-contenedor">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Línea</th>
+                        <th>Columna</th>
+                        <th>Lexema</th>
+                        <th>Token</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for t in tokens %}
+                    <tr>
+                        <td>{{ t.linea }}</td>
+                        <td>{{ t.columna }}</td>
+                        <td><code>{{ t.lexema }}</code></td>
+                        <td>{{ t.token }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+
+        {% if errores %}
+            <h3 class="error">Errores léxicos</h3>
+
+            {% for e in errores %}
+                <p>
+                    Línea {{ e.linea }},
+                    columna {{ e.columna }}:
+                    <strong>{{ e.lexema }}</strong>
+                </p>
+            {% endfor %}
+        {% else %}
+            <p class="correcto">
+                Análisis léxico completado sin errores.
+            </p>
+        {% endif %}
+
+        {% if not tokens %}
+            <p>No se reconocieron tokens válidos.</p>
+        {% endif %}
+    </section>
+
+    {% if resultados %}
+    <section>
+        <h2>Generación de autómatas</h2>
+
+        <p>
+            Selecciona un token reconocido para consultar
+            su expresión regular, AFND, AFD, quíntuplas
+            y tablas de transiciones.
+        </p>
+
+        <div class="selector">
+            {% for nombre in resultados %}
+                <button
+                    type="button"
+                    class="boton-token"
+                    data-token="{{ nombre }}"
+                    onclick="seleccionarToken('{{ nombre }}')">
+                    {{ nombre }}
+                </button>
+            {% endfor %}
+        </div>
+
+        {% for nombre, datos in resultados.items() %}
+        <div class="panel-token" id="token-{{ nombre }}">
+            <div class="panel">
+                <h3>{{ nombre }}</h3>
+                <p>
+                    <strong>Expresión regular:</strong>
+                    <code>{{ datos.expresion }}</code>
+                </p>
+                <p>
+                    <span class="etiqueta">
+                        AFND: {{ datos.afnd.estados|length }} estados
+                    </span>
+                    <span class="etiqueta">
+                        AFD: {{ datos.afd.estados|length }} estados
+                    </span>
+                </p>
+            </div>
+
+            {% for tipo in ["afnd", "afd"] %}
+                {% set automata = datos[tipo] %}
+                {% set tabla = datos["tabla_visual_" ~ tipo] %}
+                {% set quintupla = datos["quintupla_" ~ tipo] %}
+
+                <div class="panel">
+                    <h3>{{ tipo|upper }}</h3>
+
+                    <div class="controles">
+                        <button type="button"
+                            onclick="cambiarZoom('grafico-{{ nombre }}-{{ tipo }}', 1.25)">
+                            Acercar +
+                        </button>
+
+                        <button type="button"
+                            onclick="cambiarZoom('grafico-{{ nombre }}-{{ tipo }}', 0.8)">
+                            Alejar −
+                        </button>
+
+                        <button type="button"
+                            onclick="reiniciarZoom('grafico-{{ nombre }}-{{ tipo }}')">
+                            Restablecer
+                        </button>
+                    </div>
+
+                    <div class="grafico" id="grafico-{{ nombre }}-{{ tipo }}">
+                        <div role="img" aria-label="{{ tipo|upper }} del token {{ nombre }}">
+                            {{ datos['imagen_' ~ tipo]|safe }}
+                        </div>
+                    </div>
+
+                    <h3>Quíntupla</h3>
+
+                    <div class="quintupla">
+                        <strong>Q</strong>
+                        <div>{{ quintupla.Q|join(", ") }}</div>
+
+                        <strong>Σ</strong>
+                        <div>{{ quintupla.Sigma|join(", ") }}</div>
+
+                        <strong>δ</strong>
+                        <div>
+                            Función de transición representada
+                            en la tabla inferior.
+                        </div>
+
+                        <strong>q₀</strong>
+                        <div>{{ quintupla.q0 }}</div>
+
+                        <strong>F</strong>
+                        <div>{{ quintupla.F|join(", ") }}</div>
+                    </div>
+
+                    {% if tipo == "afd" %}
+                    <h3>Estados equivalentes del AFND</h3>
+
+                    <div class="tabla-contenedor">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>AFD</th>
+                                    <th>Conjunto de estados AFND</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for estado, conjunto in automata.equivalencias.items() %}
+                                <tr>
+                                    <td>{{ estado }}</td>
+                                    <td>{{ conjunto|join(", ") if conjunto else "∅ (sumidero)" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% endif %}
+
+                    <h3>Tabla de transiciones</h3>
+
+                    <div class="tabla-contenedor transiciones">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Estado</th>
+                                    {% for simbolo in tabla.alfabeto %}
+                                        <th>{{ simbolo }}</th>
+                                    {% endfor %}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for fila in tabla.filas %}
+                                <tr>
+                                    <td>
+                                        {% if fila.inicial %}→{% endif %}
+                                        {% if fila.final %}*{% endif %}
+                                        {{ fila.estado }}
+                                    </td>
+
+                                    {% for simbolo in tabla.alfabeto %}
+                                        <td>{{ fila.destinos[simbolo] }}</td>
+                                    {% endfor %}
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <p class="nota">
+                        → Estado inicial.
+                        * Estado de aceptación.
+                        ∅ Sin transición.
+                    </p>
+                </div>
+            {% endfor %}
+        </div>
+        {% endfor %}
+    </section>
+    {% endif %}
+    {% endif %}

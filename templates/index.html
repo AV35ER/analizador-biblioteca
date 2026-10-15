@@ -1,0 +1,444 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analizador Léxico de Biblioteca</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background: #f5f3ee;
+            color: #292929;
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        main {
+            max-width: 1050px;
+            margin: 35px auto;
+            padding: 0 22px 70px;
+        }
+
+        header {
+            border-left: 4px solid #47634c;
+            padding-left: 18px;
+            margin-bottom: 35px;
+        }
+
+        h1 {
+            font-family: Georgia, serif;
+            font-size: 31px;
+            margin: 5px 0;
+        }
+
+        h2 {
+            font-size: 20px;
+            margin: 0 0 15px;
+        }
+
+        h3 {
+            font-size: 17px;
+        }
+
+        p {
+            margin: 10px 0;
+        }
+
+        .subtitulo {
+            color: #666;
+            font-size: 12px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        section {
+            border-top: 1px solid #d5d0c6;
+            padding-top: 30px;
+            margin-top: 32px;
+        }
+
+        .nota {
+            color: #777;
+            font-size: 12px;
+        }
+
+        .tabla-contenedor {
+            overflow-x: auto;
+            margin: 18px 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #fffdf9;
+            font-size: 13px;
+        }
+
+        th {
+            background: #e3e9e0;
+            text-align: left;
+        }
+
+        th, td {
+            border-bottom: 1px solid #dedbd4;
+            padding: 10px;
+            white-space: nowrap;
+        }
+
+        code {
+            font-family: Consolas, monospace;
+            font-size: 13px;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 125px;
+            padding: 14px;
+            border: 1px solid #bdb8af;
+            background: white;
+            font-family: Consolas, monospace;
+            font-size: 14px;
+            resize: vertical;
+        }
+
+        input[type="file"] {
+            display: block;
+            margin: 10px 0;
+            max-width: 100%;
+        }
+
+        button {
+            background: #47634c;
+            color: white;
+            border: none;
+            padding: 11px 18px;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #354d3a;
+        }
+
+        button:focus-visible {
+            outline: 3px solid #b58a45;
+            outline-offset: 2px;
+        }
+
+        .compilar {
+            margin-top: 15px;
+            min-width: 130px;
+        }
+
+        .mensaje {
+            margin-top: 18px;
+            padding: 12px;
+            background: #eee7d9;
+        }
+
+        .correcto {
+            color: #32613a;
+        }
+
+        .error {
+            color: #a33939;
+        }
+
+        .selector {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 20px 0;
+        }
+
+        .selector button {
+            background: #e1e6df;
+            color: #344538;
+            border: 1px solid #c5d0c3;
+        }
+
+        .selector button.activo {
+            background: #47634c;
+            color: white;
+        }
+
+        .panel-token {
+            display: none;
+        }
+
+        .panel-token.activo {
+            display: block;
+        }
+
+        .panel {
+            padding: 20px;
+            border: 1px solid #ded9cd;
+            background: #fffdf9;
+            margin: 15px 0;
+            border-radius: 5px;
+        }
+
+        .grafico {
+            overflow: auto;
+            background: white;
+            border: 1px solid #dedbd4;
+            border-radius: 5px;
+            padding: 18px;
+            min-height: 130px;
+            max-height: 650px;
+        }
+
+        .grafico svg {
+            display: block;
+            width: auto;
+            max-width: none;
+            height: auto;
+            min-width: 0;
+            margin: auto;
+        }
+
+        .controles {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 7px;
+            margin: 12px 0;
+        }
+
+        .controles button {
+            padding: 7px 12px;
+            background: #e1e6df;
+            color: #344538;
+        }
+
+        .quintupla {
+            display: grid;
+            grid-template-columns: 70px minmax(0, 1fr);
+            gap: 10px;
+            margin-top: 16px;
+        }
+
+        .quintupla div {
+            overflow-wrap: anywhere;
+        }
+
+        .quintupla strong {
+            color: #47634c;
+        }
+
+        .transiciones {
+            max-height: 260px;
+            overflow: auto;
+            margin-top: 14px;
+        }
+
+        .transiciones table {
+            font-size: 12px;
+        }
+
+        .transiciones th {
+            position: sticky;
+            top: 0;
+        }
+
+        .etiqueta {
+            display: inline-block;
+            background: #e3e9e0;
+            padding: 3px 8px;
+            font-size: 12px;
+        }
+
+        @media (max-width: 600px) {
+            main {
+                margin-top: 20px;
+                padding: 0 14px 45px;
+            }
+
+            h1 {
+                font-size: 25px;
+            }
+
+            .panel {
+                padding: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+<main>
+    <header>
+        <div class="subtitulo">Biblioteca / Teoría de la Computación</div>
+        <h1>Analizador léxico de reservas</h1>
+        <p>Identificación de tokens, expresiones regulares y generación de autómatas.</p>
+    </header>
+
+    <section>
+        <h2>¿En qué consiste?</h2>
+        <p>
+            Este proyecto analiza instrucciones de reserva de libros.
+            Reconoce palabras, códigos, números y símbolos según
+            las reglas de nuestro lenguaje.
+        </p>
+        <p>
+            A partir de las expresiones regulares se construyen
+            autómatas finitos no deterministas (AFND), que luego
+            se convierten en autómatas finitos deterministas (AFD).
+        </p>
+        <p class="nota">
+            El proyecto realiza análisis léxico. No registra reservas
+            reales ni verifica el orden de los tokens.
+        </p>
+    </section>
+
+    <section>
+        <h2>Definición del lenguaje</h2>
+        <p>
+            Un token es una categoría y un lexema es el texto concreto
+            que pertenece a esa categoría.
+        </p>
+
+        <div class="tabla-contenedor">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Token</th>
+                        <th>Lexema</th>
+                        <th>Expresión regular</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>ACCION</td>
+                        <td>RESERVAR</td>
+                        <td><code>RESERVAR</code></td>
+                    </tr>
+                    <tr>
+                        <td>CODIGO_LIBRO</td>
+                        <td>L025</td>
+                        <td><code>L[0-9]{3}</code></td>
+                    </tr>
+                    <tr>
+                        <td>CODIGO_USUARIO</td>
+                        <td>U104</td>
+                        <td><code>U[0-9]{3}</code></td>
+                    </tr>
+                    <tr>
+                        <td>DIAS</td>
+                        <td>7</td>
+                        <td><code>[1-9][0-9]*</code></td>
+                    </tr>
+                    <tr>
+                        <td>FIN_INSTRUCCION</td>
+                        <td>;</td>
+                        <td><code>;</code></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section>
+        <h2>Probar una instrucción</h2>
+
+        <form method="POST" enctype="multipart/form-data">
+            <label for="texto"><strong>Texto de entrada</strong></label>
+
+            <textarea id="texto" name="texto">{{ texto }}</textarea>
+
+            <p><strong>O selecciona un archivo TXT</strong></p>
+
+            <input type="file" name="archivo" accept=".txt">
+
+            <p class="nota">
+                El archivo reemplaza al texto escrito.
+                Codificación UTF-8. Máximo 1 MB.
+            </p>
+
+            <button class="compilar" type="submit">Compilar</button>
+        </form>
+        <div id="estado-conexion" class="mensaje" role="status" aria-live="polite" hidden></div>
+
+        {% if mensaje %}
+            <div class="mensaje">{{ mensaje }}</div>
+        {% endif %}
+    </section>
+
+    <div id="resultados">
+        {% include "resultados.html" %}
+    </div>
+
+</main>
+
+<script>
+    function seleccionarToken(nombre) {
+        document.querySelectorAll(".panel-token").forEach(panel => {
+            panel.classList.remove("activo");
+        });
+
+        document.querySelectorAll(".boton-token").forEach(boton => {
+            boton.classList.remove("activo");
+        });
+
+        const panel = document.getElementById("token-" + nombre);
+        const boton = document.querySelector(
+            '.boton-token[data-token="' + nombre + '"]'
+        );
+
+        if (panel) {
+            panel.classList.add("activo");
+        }
+
+        if (boton) {
+            boton.classList.add("activo");
+        }
+    }
+
+    function cambiarZoom(id, factor) {
+        const contenedor = document.getElementById(id);
+        const imagen = contenedor.querySelector("svg");
+
+        let escala = Number(imagen.dataset.escala || 1);
+        escala = Math.min(4, Math.max(0.5, escala * factor));
+
+        imagen.dataset.escala = escala;
+        const dimensiones = imagen.viewBox.baseVal;
+        imagen.style.width = (dimensiones.width * escala) + "px";
+        imagen.style.height = (dimensiones.height * escala) + "px";
+    }
+
+    function reiniciarZoom(id) {
+        const contenedor = document.getElementById(id);
+        const imagen = contenedor.querySelector("svg");
+
+        imagen.dataset.escala = 1;
+        const dimensiones = imagen.viewBox.baseVal;
+        imagen.style.width = dimensiones.width + "px";
+        imagen.style.height = dimensiones.height + "px";
+        contenedor.scrollLeft = 0;
+        contenedor.scrollTop = 0;
+    }
+
+    function inicializarResultados() {
+        document.querySelectorAll(".grafico").forEach(contenedor => {
+            reiniciarZoom(contenedor.id);
+        });
+
+        const primerBoton = document.querySelector(".boton-token");
+
+        if (primerBoton) {
+            seleccionarToken(primerBoton.dataset.token);
+        }
+    }
+    inicializarResultados();
+</script>
+{% if modo_estatico %}
+<script src="/config.js"></script>
+<script src="/cliente.js"></script>
+{% endif %}
+</body>
+</html>

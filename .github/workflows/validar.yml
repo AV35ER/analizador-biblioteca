@@ -1,0 +1,30 @@
+name: Validar aplicación Docker
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Probar espera y comunicación del frontend
+        run: node --test test_cliente.cjs
+      - name: Construir y ejecutar pruebas en Linux
+        run: docker build --tag analizador-biblioteca:test .
+      - name: Iniciar Gunicorn
+        run: docker run --detach --name biblioteca --env CORS_ORIGINS=http://127.0.0.1:8080 --publish 127.0.0.1:10000:10000 analizador-biblioteca:test
+      - name: Probar HTTP y carga multipart
+        run: python3 verificar_http.py --origen http://127.0.0.1:8080
+      - name: Mostrar registros
+        if: always()
+        run: docker logs biblioteca
+      - name: Detener contenedor
+        if: always()
+        run: docker rm --force biblioteca

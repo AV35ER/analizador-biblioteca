@@ -1,0 +1,1 @@
+Netlify sirve el frontend estático; cliente.js consulta directamente la API Flask en Render Free.
